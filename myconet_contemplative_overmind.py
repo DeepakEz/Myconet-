@@ -1026,7 +1026,7 @@ def test_truly_complete_system():
         # Test insight revision if needed
         if decay_analysis['recommendation'] == 'REVISE_INSIGHT':
             new_context = {'step': 220, 'updated_crisis': 0.3}
-            revised_id = archive.revise_insight(insight_id, new_context, 'context_update')
+            revised_id = revise_insight(archive, insight_id, new_context, 'context_update')
             if revised_id:
                 print(f"      🔄 Revised as {revised_id[:8]}...")
     
@@ -1209,9 +1209,11 @@ if __name__ == "__main__":
         print("Ready for real-world deployment and LLM integration")
     else:
         print("⚠️  System needs additional development")
-    print("=" * 80)    def save_visualization_snapshot(self, filename: str):
+    print("=" * 80)
+
+    def save_visualization_snapshot(self, filename: str):
         """Save current visualization as image"""
-        
+
         if self.fig:
             self.fig.savefig(filename, dpi=300, bbox_inches='tight')
 
@@ -1682,8 +1684,8 @@ class CompletePhaseIIIContemplativeOvermind(PhaseIIIContemplativeOvermind):
             
             if decay_analysis['recommendation'] == 'REVISE_INSIGHT':
                 # Revise insight with current context
-                revised_id = self.wisdom_archive.revise_insight(
-                    insight_id, context, 'context_update'
+                revised_id = revise_insight(
+                    self.wisdom_archive, insight_id, context, 'context_update'
                 )
                 if revised_id:
                     logger.info(f"Insight {insight_id} revised as {revised_id}")
@@ -2165,80 +2167,46 @@ if __name__ == "__main__":
     print("🎉 IMPLEMENTATION COMPLETE - NO MISSING FEATURES")
     print("Ready for integration with LLM systems and real-world deployment")
     print("Supports full contemplative AI governance with emergent wisdom")
-    print("=" * 80)        # Combined decay score
-        overall_decay = (
-            time_decay * 0.2 +
-            (1.0 - usage_relevance) * 0.3 +
-            (1.0 - success_trend) * 0.2 +
-            context_drift_penalty * 0.1 +
-            neural_decay_score * 0.2
-        )
-        
-        return {
-            'overall_decay_score': overall_decay,
-            'time_decay': time_decay,
-            'usage_relevance': usage_relevance,
-            'success_trend': success_trend,
-            'context_drift': decay_info['context_drift'],
-            'neural_decay': neural_decay_score,
-            'revision_needed': revision_needed,
-            'obsolete_probability': obsolete_probability,
-            'recommendation': self._get_decay_recommendation(overall_decay, revision_needed, obsolete_probability)
-        }
+    print("=" * 80)
     
-    def _get_decay_recommendation(self, decay_score: float, revision_needed: float, 
-                                 obsolete_prob: float) -> str:
-        """Get recommendation based on decay analysis"""
+def revise_insight(archive, insight_id: str, new_context: Dict[str, Any],
+                   revision_type: str = "context_update") -> str:
+    """Create revised version of an insight"""
+
+    if insight_id not in archive.insights:
+        return None
+
+    original_insight = archive.insights[insight_id]
+    evolution_info = archive.insight_evolution[insight_id]
         
-        if obsolete_prob > 0.8:
-            return "ARCHIVE_INSIGHT"
-        elif revision_needed > 0.7:
-            return "REVISE_INSIGHT"
-        elif decay_score > 0.6:
-            return "REFRESH_CONTEXT"
-        elif decay_score < 0.3:
-            return "INSIGHT_HEALTHY"
-        else:
-            return "MONITOR_CLOSELY"
-    
-    def revise_insight(self, insight_id: str, new_context: Dict[str, Any], 
-                      revision_type: str = "context_update") -> str:
-        """Create revised version of an insight"""
+    # Create revised insight
+    revised_insight = WisdomInsightEmbedding(
+        insight_text=original_insight.insight_text + f" [Revised: {revision_type}]",
+        embedding_vector=original_insight.embedding_vector,  # Could re-encode
+        dharma_alignment=original_insight.dharma_alignment,
+        emergence_context=new_context,
+        impact_metrics=original_insight.impact_metrics.copy(),
+        timestamp=time.time(),
+        agent_source=original_insight.agent_source
+    )
         
-        if insight_id not in self.insights:
-            return None
+    # Store as new insight
+    revised_id = archive.store_insight(revised_insight, new_context)
         
-        original_insight = self.insights[insight_id]
-        evolution_info = self.insight_evolution[insight_id]
+    # Record evolution
+    evolution_event = {
+        'timestamp': time.time(),
+        'revision_type': revision_type,
+        'original_id': insight_id,
+        'revised_id': revised_id,
+        'context_change': new_context
+    }
         
-        # Create revised insight
-        revised_insight = WisdomInsightEmbedding(
-            insight_text=original_insight.insight_text + f" [Revised: {revision_type}]",
-            embedding_vector=original_insight.embedding_vector,  # Could re-encode
-            dharma_alignment=original_insight.dharma_alignment,
-            emergence_context=new_context,
-            impact_metrics=original_insight.impact_metrics.copy(),
-            timestamp=time.time(),
-            agent_source=original_insight.agent_source
-        )
+    evolution_info['evolution_events'].append(evolution_event)
+    evolution_info['revision_count'] += 1
+    evolution_info['current_version'] += 0.1
         
-        # Store as new insight
-        revised_id = self.store_insight(revised_insight, new_context)
-        
-        # Record evolution
-        evolution_event = {
-            'timestamp': time.time(),
-            'revision_type': revision_type,
-            'original_id': insight_id,
-            'revised_id': revised_id,
-            'context_change': new_context
-        }
-        
-        evolution_info['evolution_events'].append(evolution_event)
-        evolution_info['revision_count'] += 1
-        evolution_info['current_version'] += 0.1
-        
-        return revised_id
+    return revised_id
     
     def get_insight_lineage(self, insight_id: str) -> Dict[str, Any]:
         """Get full evolution lineage of an insight"""
@@ -2920,14 +2888,9 @@ class OvermindVisualizer:
     
     def save_visualization_snapshot(self, filename: str):
         """Save current visualization as image"""
-        
+
         if self.fig:
-            self.fig.savefig(filenameimport matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import networkx as nx
-from datetime import datetime, timedelta
-import threading
-from concurrent.futures import ThreadPoolExecutor
+            self.fig.savefig(filename, dpi=300, bbox_inches='tight')
 
 logger = logging.getLogger(__name__)
 
@@ -3650,13 +3613,34 @@ class WisdomArchive:
             (1.0 - usage_relevance) * 0.3 +
             (1.0 - success_trend) * 0.2 +
             context_drift_penalty * 0.1 +
-            neural_decay_score * 0.2        for principle, keywords in dharma_keywords.items():
-            keyword_matches = sum(1 for keyword in keywords if keyword in text_lower)
-            principle_alignment = min(1.0, keyword_matches / len(keywords))
-            alignment_scores.append(principle_alignment)
-        
-        return np.mean(alignment_scores)
-    
+
+            neural_decay_score * 0.2
+        )
+
+        return {
+            'overall_decay_score': overall_decay,
+            'time_decay': time_decay,
+            'usage_relevance': usage_relevance,
+            'success_trend': success_trend,
+            'context_drift': decay_info['context_drift'],
+            'neural_decay': neural_decay_score,
+            'revision_needed': revision_needed,
+            'obsolete_probability': obsolete_probability,
+            'recommendation': self._get_decay_recommendation(overall_decay, revision_needed, obsolete_probability)
+        }
+    def _get_decay_recommendation(self, decay_score: float, revision_needed: float, obsolete_prob: float) -> str:
+        """Determine recommended action based on decay analysis"""
+        if obsolete_prob > 0.8:
+            return "ARCHIVE_INSIGHT"
+        elif revision_needed > 0.7:
+            return "REVISE_INSIGHT"
+        elif decay_score > 0.6:
+            return "REFRESH_CONTEXT"
+        elif decay_score < 0.3:
+            return "INSIGHT_HEALTHY"
+        else:
+            return "MONITOR_CLOSELY"
+
     def train_contrastive_alignment(self, positive_insights: List[WisdomInsightEmbedding],
                                   negative_insights: List[WisdomInsightEmbedding],
                                   context_states: List[torch.Tensor]) -> Dict[str, float]:
@@ -4547,31 +4531,7 @@ if __name__ == "__main__":
     print("🚀 PHASE III IMPLEMENTATION COMPLETE")
     print("Ready for integration with LLM multi-agent simulations")
     print("Supports emergent collective intelligence and wisdom-based governance")
-    print("=" * 80)        # Combine resource requirements
-        combined_requirements = defaultdict(float)
-        for proposal in proposals:
-            for resource, amount in proposal.resource_requirements.items():
-                combined_requirements[resource] += amount
-        
-        # Average confidence and urgency
-        avg_confidence = np.mean([p.confidence for p in proposals])
-        avg_urgency = np.mean([p.urgency for p in proposals])
-        
-        # Combined affected agent count
-        total_affected = sum(p.affected_agent_count for p in proposals)
-        
-        return SubColonyProposal(
-            sub_colony_id="synthesized_" + "_".join([p.sub_colony_id for p in proposals]),
-            proposed_action=primary_proposal.proposed_action,
-            justification=f"Synthesized proposal: {combined_justification}",
-            expected_benefits=dict(combined_benefits),
-            resource_requirements=dict(combined_requirements),
-            affected_agent_count=total_affected,
-            confidence=avg_confidence,
-            urgency=avg_urgency,
-            negotiation_stance=NegotiationStance.COOPERATIVE,
-            alternative_actions=list(action_group)
-        )
+    print("=" * 80)
 
 class RitualProtocolLayer:
     """Advanced ritual protocol system for group synchrony and collective experiences"""
@@ -5286,8 +5246,7 @@ class FinetuneNeuralAlignment:
         """Calculate how well insight aligns with dharma principles"""
         
         text_lower = insight_text.lower()
-        
-        # Keyword alignment with dharma principles
+
         dharma_keywords = {
             'reduce_suffering': ['suffering', 'pain', 'relief', 'comfort', 'healing'],
             'increase_wisdom': ['wisdom', 'understanding', 'learning', 'insight', 'knowledge'],
@@ -5296,752 +5255,11 @@ class FinetuneNeuralAlignment:
             'encourage_growth': ['growth', 'development', 'progress', 'evolution', 'potential'],
             'maintain_balance': ['balance', 'equilibrium', 'stability', 'moderation', 'sustainable']
         }
-        
+
         alignment_scores = []
-        
         for principle, keywords in dharma_keywords.items():
-            keyword_matches =#!/usr/bin/env python3
-"""
-PHASE III CONTEMPLATIVE OVERMIND - ADVANCED ENHANCEMENTS
-Implementing sophisticated memory attention, multi-agent negotiation, 
-ritual protocols, and fine-tuned neural decision making
-"""
+            keyword_matches = sum(1 for keyword in keywords if keyword in text_lower)
+            principle_alignment = min(1.0, keyword_matches / len(keywords))
+            alignment_scores.append(principle_alignment)
 
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from typing import Dict, List, Any, Optional, Tuple, Union, Set
-from dataclasses import dataclass, field
-from enum import Enum
-import random
-import logging
-import time
-from collections import deque, defaultdict
-import json
-from abc import ABC, abstractmethod
-
-logger = logging.getLogger(__name__)
-
-class RitualType(Enum):
-    """Types of collective rituals the overmind can orchestrate"""
-    SYNCHRONIZED_MEDITATION = "synchronized_meditation"
-    WISDOM_CIRCLE = "wisdom_circle"
-    HARMONY_RESONANCE = "harmony_resonance"
-    COLLECTIVE_INSIGHT = "collective_insight"
-    ENERGY_REDISTRIBUTION_CEREMONY = "energy_redistribution_ceremony"
-    GRATITUDE_WAVE = "gratitude_wave"
-    CONFLICT_RESOLUTION_CIRCLE = "conflict_resolution_circle"
-
-class NegotiationStance(Enum):
-    """Negotiation stances for sub-colonies"""
-    COOPERATIVE = "cooperative"
-    ASSERTIVE = "assertive"
-    PROTECTIVE = "protective"
-    ADAPTIVE = "adaptive"
-    WISDOM_SEEKING = "wisdom_seeking"
-
-@dataclass
-class WisdomInsightEmbedding:
-    """Embedded representation of wisdom insights for neural training"""
-    insight_text: str
-    embedding_vector: torch.Tensor
-    dharma_alignment: float
-    emergence_context: Dict[str, float]
-    impact_metrics: Dict[str, float]
-    timestamp: float
-    agent_source: Optional[int] = None
-
-@dataclass
-class MemoryAttentionWeights:
-    """Attention weights for different types of memories"""
-    recent_weight: float = 0.4      # Last 10 decisions
-    medium_term_weight: float = 0.3 # Last 50 decisions  
-    long_term_weight: float = 0.2   # Older decisions
-    crisis_memory_weight: float = 0.1 # Crisis-specific memories
-    
-    def normalize(self):
-        total = self.recent_weight + self.medium_term_weight + self.long_term_weight + self.crisis_memory_weight
-        self.recent_weight /= total
-        self.medium_term_weight /= total
-        self.long_term_weight /= total
-        self.crisis_memory_weight /= total
-
-@dataclass
-class SubColonyProposal:
-    """Proposal from a sub-colony for intervention"""
-    sub_colony_id: str
-    proposed_action: 'OvermindActionType'
-    justification: str
-    expected_benefits: Dict[str, float]
-    resource_requirements: Dict[str, float]
-    affected_agent_count: int
-    confidence: float
-    urgency: float
-    negotiation_stance: NegotiationStance
-    alternative_actions: List['OvermindActionType']
-
-@dataclass
-class RitualProtocol:
-    """Complete ritual protocol specification"""
-    ritual_type: RitualType
-    participant_criteria: Dict[str, Any]
-    duration_steps: int
-    synchronization_requirements: Dict[str, float]
-    expected_effects: Dict[str, float]
-    preparation_time: int
-    energy_cost: float
-    success_conditions: Dict[str, float]
-
-class MemoryAttentionMechanism:
-    """Advanced memory attention system for weighting historical decisions"""
-    
-    def __init__(self, memory_capacity: int = 1000):
-        self.memory_capacity = memory_capacity
-        self.intervention_memories = deque(maxlen=memory_capacity)
-        self.attention_weights = MemoryAttentionWeights()
-        self.impact_tracking = defaultdict(list)  # Track delayed impacts
-        self.memory_embeddings = {}  # Store embedded representations
-        
-        # Attention neural network
-        self.attention_network = self._create_attention_network()
-        
-    def _create_attention_network(self) -> nn.Module:
-        """Create neural network for computing attention weights"""
-        
-        class AttentionNetwork(nn.Module):
-            def __init__(self):
-                super().__init__()
-                # Input: current context + memory features
-                self.context_encoder = nn.Linear(50, 64)  # Current state
-                self.memory_encoder = nn.Linear(30, 64)   # Memory features
-                self.attention_head = nn.MultiheadAttention(64, 8)
-                self.output_layer = nn.Linear(64, 1)
-                
-            def forward(self, current_context, memory_features):
-                # Encode current context
-                context_emb = F.relu(self.context_encoder(current_context))
-                
-                # Encode memories
-                memory_emb = F.relu(self.memory_encoder(memory_features))
-                
-                # Compute attention
-                attended_memory, attention_weights = self.attention_head(
-                    context_emb.unsqueeze(0), memory_emb.unsqueeze(0), memory_emb.unsqueeze(0)
-                )
-                
-                # Output attention score
-                attention_score = torch.sigmoid(self.output_layer(attended_memory.squeeze(0)))
-                return attention_score, attention_weights
-        
-        return AttentionNetwork()
-    
-    def add_intervention_memory(self, decision_record: Dict[str, Any], 
-                              immediate_impact: Dict[str, float]):
-        """Add intervention to memory with immediate impact assessment"""
-        
-        memory_entry = {
-            'timestamp': time.time(),
-            'decision': decision_record,
-            'immediate_impact': immediate_impact,
-            'delayed_impacts': [],  # Will be filled over time
-            'attention_score': 1.0,  # Initial high attention
-            'crisis_context': decision_record.get('colony_state', {}).get('crisis_level', 0),
-            'intervention_type': decision_record.get('chosen_action'),
-            'success_probability': decision_record.get('success_probability', 0.5)
-        }
-        
-        self.intervention_memories.append(memory_entry)
-        
-        # Compute embedding for this memory
-        self._compute_memory_embedding(memory_entry)
-    
-    def update_delayed_impact(self, steps_ago: int, impact_metrics: Dict[str, float]):
-        """Update delayed impact for intervention that happened steps_ago"""
-        
-        if steps_ago < len(self.intervention_memories):
-            memory_entry = self.intervention_memories[-steps_ago-1]
-            memory_entry['delayed_impacts'].append({
-                'delay_steps': steps_ago,
-                'impact_metrics': impact_metrics,
-                'timestamp': time.time()
-            })
-            
-            # Update attention score based on delayed impact
-            self._update_attention_score(memory_entry)
-    
-    def _compute_memory_embedding(self, memory_entry: Dict[str, Any]):
-        """Compute embedding representation of memory"""
-        
-        # Extract key features for embedding
-        features = []
-        
-        # Action type (one-hot)
-        action_type = memory_entry['intervention_type']
-        action_vector = torch.zeros(14)  # Number of action types
-        if hasattr(action_type, 'value'):
-            action_vector[action_type.value] = 1.0
-        features.append(action_vector)
-        
-        # Context features
-        crisis_level = memory_entry['crisis_context']
-        success_prob = memory_entry['success_probability']
-        
-        context_features = torch.tensor([
-            crisis_level, success_prob,
-            len(memory_entry['delayed_impacts']),
-            memory_entry['attention_score']
-        ])
-        features.append(context_features)
-        
-        # Impact features
-        immediate_impact = memory_entry['immediate_impact']
-        impact_vector = torch.tensor([
-            immediate_impact.get('agents_affected', 0) / 100.0,
-            immediate_impact.get('implementation_fidelity', 0),
-            sum(immediate_impact.get('detailed_effects', {}).values()) / 10.0
-        ])
-        features.append(impact_vector)
-        
-        # Combine all features
-        full_embedding = torch.cat(features)
-        memory_key = id(memory_entry)
-        self.memory_embeddings[memory_key] = full_embedding
-    
-    def _update_attention_score(self, memory_entry: Dict[str, Any]):
-        """Update attention score based on accumulated impacts"""
-        
-        # Base score from immediate impact
-        immediate_score = memory_entry['immediate_impact'].get('implementation_fidelity', 0.5)
-        
-        # Delayed impact contribution
-        delayed_scores = []
-        for delayed_impact in memory_entry['delayed_impacts']:
-            impact_metrics = delayed_impact['impact_metrics']
-            delay_steps = delayed_impact['delay_steps']
-            
-            # Weight by recency (more recent delayed impacts matter more)
-            recency_weight = 1.0 / (1.0 + delay_steps * 0.1)
-            impact_strength = sum(abs(v) for v in impact_metrics.values()) / len(impact_metrics)
-            delayed_scores.append(impact_strength * recency_weight)
-        
-        # Combine scores
-        if delayed_scores:
-            delayed_score = np.mean(delayed_scores)
-            memory_entry['attention_score'] = 0.6 * immediate_score + 0.4 * delayed_score
-        else:
-            memory_entry['attention_score'] = immediate_score
-    
-    def compute_weighted_memory_influence(self, current_context: torch.Tensor) -> Dict[str, float]:
-        """Compute weighted influence of memories on current decision"""
-        
-        if not self.intervention_memories:
-            return {'memory_influence': 0.0, 'confidence_boost': 0.0}
-        
-        # Categorize memories by age
-        recent_memories = list(self.intervention_memories)[-10:]
-        medium_memories = list(self.intervention_memories)[-50:-10] if len(self.intervention_memories) > 10 else []
-        long_memories = list(self.intervention_memories)[:-50] if len(self.intervention_memories) > 50 else []
-        
-        # Compute influence for each category
-        influences = {}
-        
-        for category, memories, weight in [
-            ('recent', recent_memories, self.attention_weights.recent_weight),
-            ('medium', medium_memories, self.attention_weights.medium_term_weight),
-            ('long', long_memories, self.attention_weights.long_term_weight)
-        ]:
-            if memories:
-                category_influence = self._compute_category_influence(memories, current_context)
-                influences[category] = category_influence * weight
-            else:
-                influences[category] = 0.0
-        
-        # Crisis memory influence
-        crisis_memories = [m for m in self.intervention_memories if m['crisis_context'] > 0.7]
-        if crisis_memories:
-            crisis_influence = self._compute_category_influence(crisis_memories, current_context)
-            influences['crisis'] = crisis_influence * self.attention_weights.crisis_memory_weight
-        else:
-            influences['crisis'] = 0.0
-        
-        total_influence = sum(influences.values())
-        confidence_boost = min(0.3, total_influence * 0.5)  # Cap confidence boost
-        
-        return {
-            'memory_influence': total_influence,
-            'confidence_boost': confidence_boost,
-            'category_influences': influences
-        }
-    
-    def _compute_category_influence(self, memories: List[Dict[str, Any]], 
-                                  current_context: torch.Tensor) -> float:
-        """Compute influence of a category of memories"""
-        
-        if not memories:
-            return 0.0
-        
-        total_influence = 0.0
-        
-        for memory in memories:
-            # Similarity to current context
-            memory_key = id(memory)
-            if memory_key in self.memory_embeddings:
-                memory_embedding = self.memory_embeddings[memory_key]
-                
-                # Compute similarity (cosine similarity)
-                context_norm = F.normalize(current_context[:len(memory_embedding)], dim=0)
-                memory_norm = F.normalize(memory_embedding, dim=0)
-                similarity = torch.dot(context_norm, memory_norm).item()
-                
-                # Weight by attention score and similarity
-                influence = memory['attention_score'] * max(0, similarity)
-                total_influence += influence
-        
-        return total_influence / len(memories)
-
-class MultiAgentNegotiationProtocol:
-    """Advanced negotiation system for sub-colony proposals"""
-    
-    def __init__(self, harmony_threshold: float = 0.7):
-        self.harmony_threshold = harmony_threshold
-        self.active_negotiations = {}
-        self.negotiation_history = deque(maxlen=500)
-        self.sub_colony_trust_scores = defaultdict(float)
-        
-    def identify_sub_colonies(self, agents: List) -> Dict[str, List]:
-        """Identify natural sub-colonies within the agent population"""
-        
-        sub_colonies = {}
-        
-        # Method 1: Geographic clustering
-        if hasattr(agents[0], 'position'):
-            geographic_clusters = self._cluster_by_position(agents)
-            sub_colonies.update(geographic_clusters)
-        
-        # Method 2: Relationship clustering
-        relationship_clusters = self._cluster_by_relationships(agents)
-        sub_colonies.update(relationship_clusters)
-        
-        # Method 3: Behavioral similarity clustering
-        behavioral_clusters = self._cluster_by_behavior(agents)
-        sub_colonies.update(behavioral_clusters)
-        
-        return sub_colonies
-    
-    def _cluster_by_position(self, agents: List) -> Dict[str, List]:
-        """Cluster agents by spatial proximity"""
-        
-        positions = np.array([getattr(agent, 'position', [random.random(), random.random()]) 
-                            for agent in agents])
-        
-        # Simple k-means clustering
-        from sklearn.cluster import KMeans
-        n_clusters = min(5, len(agents) // 10)  # Adaptive cluster count
-        
-        if n_clusters > 1:
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            cluster_labels = kmeans.fit_predict(positions)
-            
-            clusters = {}
-            for i, label in enumerate(cluster_labels):
-                cluster_id = f"geo_cluster_{label}"
-                if cluster_id not in clusters:
-                    clusters[cluster_id] = []
-                clusters[cluster_id].append(agents[i])
-            
-            return clusters
-        
-        return {"geo_cluster_0": agents}
-    
-    def _cluster_by_relationships(self, agents: List) -> Dict[str, List]:
-        """Cluster agents by relationship strength"""
-        
-        # Build relationship graph
-        relationship_matrix = np.zeros((len(agents), len(agents)))
-        
-        for i, agent in enumerate(agents):
-            if hasattr(agent, 'relationships'):
-                relationships = getattr(agent, 'relationships', {})
-                for other_id, strength in relationships.items():
-                    # Find other agent index
-                    for j, other_agent in enumerate(agents):
-                        if getattr(other_agent, 'id', j) == other_id:
-                            relationship_matrix[i, j] = strength
-                            break
-        
-        # Community detection using simple modularity
-        clusters = self._detect_communities(relationship_matrix, agents)
-        return clusters
-    
-    def _cluster_by_behavior(self, agents: List) -> Dict[str, List]:
-        """Cluster agents by behavioral similarity"""
-        
-        # Extract behavioral features
-        behavioral_features = []
-        
-        for agent in agents:
-            features = [
-                getattr(agent, 'energy', 0.5),
-                getattr(agent, 'mindfulness_level', 0.5),
-                getattr(agent, 'cooperation_tendency', 0.5),
-                getattr(agent, 'exploration_tendency', 0.5),
-                getattr(agent, 'wisdom_sharing_frequency', 0.5)
-            ]
-            behavioral_features.append(features)
-        
-        behavioral_array = np.array(behavioral_features)
-        
-        # Cluster by behavioral similarity
-        from sklearn.cluster import AgglomerativeClustering
-        n_clusters = min(4, len(agents) // 15)
-        
-        if n_clusters > 1:
-            clustering = AgglomerativeClustering(n_clusters=n_clusters)
-            cluster_labels = clustering.fit_predict(behavioral_array)
-            
-            clusters = {}
-            for i, label in enumerate(cluster_labels):
-                cluster_id = f"behavioral_cluster_{label}"
-                if cluster_id not in clusters:
-                    clusters[cluster_id] = []
-                clusters[cluster_id].append(agents[i])
-            
-            return clusters
-        
-        return {"behavioral_cluster_0": agents}
-    
-    def _detect_communities(self, relationship_matrix: np.ndarray, agents: List) -> Dict[str, List]:
-        """Simple community detection in relationship graph"""
-        
-        # Use simple thresholding for community detection
-        threshold = 0.6
-        n_agents = len(agents)
-        visited = set()
-        communities = {}
-        community_id = 0
-        
-        for i in range(n_agents):
-            if i not in visited:
-                community = []
-                stack = [i]
-                
-                while stack:
-                    current = stack.pop()
-                    if current not in visited:
-                        visited.add(current)
-                        community.append(agents[current])
-                        
-                        # Add strongly connected neighbors
-                        for j in range(n_agents):
-                            if j not in visited and relationship_matrix[current, j] > threshold:
-                                stack.append(j)
-                
-                if len(community) > 1:  # Only keep communities with multiple members
-                    communities[f"relationship_cluster_{community_id}"] = community
-                    community_id += 1
-        
-        return communities
-    
-    def generate_sub_colony_proposals(self, sub_colonies: Dict[str, List],
-                                    colony_metrics: 'ColonyMetrics',
-                                    environmental_state: 'EnvironmentalState') -> List[SubColonyProposal]:
-        """Generate intervention proposals from sub-colonies"""
-        
-        proposals = []
-        
-        for sub_colony_id, agents in sub_colonies.items():
-            if len(agents) < 3:  # Skip very small sub-colonies
-                continue
-            
-            # Analyze sub-colony specific needs
-            sub_colony_metrics = self._analyze_sub_colony_state(agents)
-            
-            # Generate proposal based on sub-colony state
-            proposal = self._generate_proposal_for_sub_colony(
-                sub_colony_id, agents, sub_colony_metrics, 
-                colony_metrics, environmental_state
-            )
-            
-            if proposal:
-                proposals.append(proposal)
-        
-        return proposals
-    
-    def _analyze_sub_colony_state(self, agents: List) -> Dict[str, float]:
-        """Analyze the specific state of a sub-colony"""
-        
-        if not agents:
-            return {}
-        
-        # Calculate sub-colony specific metrics
-        avg_energy = np.mean([getattr(agent, 'energy', 0.5) for agent in agents])
-        avg_health = np.mean([getattr(agent, 'health', 0.5) for agent in agents])
-        avg_mindfulness = np.mean([getattr(agent, 'mindfulness_level', 0.5) for agent in agents])
-        avg_wisdom = np.mean([getattr(agent, 'wisdom_accumulated', 0) for agent in agents])
-        
-        # Internal cooperation rate
-        total_relationships = 0
-        positive_relationships = 0
-        
-        for agent in agents:
-            if hasattr(agent, 'relationships'):
-                relationships = getattr(agent, 'relationships', {})
-                for other_id, strength in relationships.items():
-                    # Check if other agent is in same sub-colony
-                    other_in_subcolony = any(getattr(other, 'id', i) == other_id 
-                                           for i, other in enumerate(agents))
-                    if other_in_subcolony:
-                        total_relationships += 1
-                        if strength > 0.6:
-                            positive_relationships += 1
-        
-        internal_cooperation = positive_relationships / max(1, total_relationships)
-        
-        return {
-            'average_energy': avg_energy,
-            'average_health': avg_health,
-            'average_mindfulness': avg_mindfulness,
-            'average_wisdom': avg_wisdom,
-            'internal_cooperation': internal_cooperation,
-            'size': len(agents),
-            'cohesion_score': self._calculate_cohesion(agents)
-        }
-    
-    def _calculate_cohesion(self, agents: List) -> float:
-        """Calculate cohesion score for sub-colony"""
-        
-        if len(agents) < 2:
-            return 1.0
-        
-        # Behavioral cohesion
-        energies = [getattr(agent, 'energy', 0.5) for agent in agents]
-        mindfulness = [getattr(agent, 'mindfulness_level', 0.5) for agent in agents]
-        
-        energy_variance = np.var(energies)
-        mindfulness_variance = np.var(mindfulness)
-        
-        # Lower variance = higher cohesion
-        cohesion = 1.0 / (1.0 + energy_variance + mindfulness_variance)
-        
-        return min(1.0, cohesion)
-    
-    def _generate_proposal_for_sub_colony(self, sub_colony_id: str, agents: List,
-                                        sub_colony_metrics: Dict[str, float],
-                                        colony_metrics: 'ColonyMetrics',
-                                        environmental_state: 'EnvironmentalState') -> Optional[SubColonyProposal]:
-        """Generate a specific proposal for a sub-colony"""
-        
-        # Identify primary need
-        primary_need = self._identify_primary_need(sub_colony_metrics)
-        
-        if not primary_need:
-            return None
-        
-        # Map need to action
-        action_mapping = {
-            'energy_shortage': OvermindActionType.INCREASE_RESOURCE_REGENERATION,
-            'low_cooperation': OvermindActionType.PROMOTE_COOPERATION,
-            'low_mindfulness': OvermindActionType.TRIGGER_COLLECTIVE_MEDITATION,
-            'wisdom_deficit': OvermindActionType.ENHANCE_WISDOM_PROPAGATION,
-            'health_crisis': OvermindActionType.REDUCE_ENVIRONMENTAL_HAZARDS,
-            'poor_communication': OvermindActionType.IMPROVE_COMMUNICATION
-        }
-        
-        proposed_action = action_mapping.get(primary_need, OvermindActionType.NO_ACTION)
-        
-        # Determine negotiation stance based on sub-colony characteristics
-        stance = self._determine_negotiation_stance(sub_colony_metrics, colony_metrics)
-        
-        # Calculate expected benefits
-        expected_benefits = self._calculate_expected_benefits(proposed_action, sub_colony_metrics)
-        
-        # Estimate resource requirements
-        resource_requirements = self._estimate_resource_requirements(proposed_action, len(agents))
-        
-        # Generate justification
-        justification = self._generate_justification(primary_need, sub_colony_metrics, sub_colony_id)
-        
-        # Calculate confidence and urgency
-        confidence = self._calculate_proposal_confidence(sub_colony_metrics, primary_need)
-        urgency = self._calculate_proposal_urgency(sub_colony_metrics, primary_need)
-        
-        return SubColonyProposal(
-            sub_colony_id=sub_colony_id,
-            proposed_action=proposed_action,
-            justification=justification,
-            expected_benefits=expected_benefits,
-            resource_requirements=resource_requirements,
-            affected_agent_count=len(agents),
-            confidence=confidence,
-            urgency=urgency,
-            negotiation_stance=stance,
-            alternative_actions=self._generate_alternatives(proposed_action)
-        )
-    
-    def _identify_primary_need(self, metrics: Dict[str, float]) -> Optional[str]:
-        """Identify the primary need of the sub-colony"""
-        
-        needs = {}
-        
-        if metrics.get('average_energy', 1.0) < 0.4:
-            needs['energy_shortage'] = 1.0 - metrics['average_energy']
-        
-        if metrics.get('internal_cooperation', 1.0) < 0.5:
-            needs['low_cooperation'] = 1.0 - metrics['internal_cooperation']
-        
-        if metrics.get('average_mindfulness', 1.0) < 0.4:
-            needs['low_mindfulness'] = 1.0 - metrics['average_mindfulness']
-        
-        if metrics.get('average_wisdom', 10.0) < 2.0:
-            needs['wisdom_deficit'] = 1.0 - (metrics['average_wisdom'] / 10.0)
-        
-        if metrics.get('average_health', 1.0) < 0.4:
-            needs['health_crisis'] = 1.0 - metrics['average_health']
-        
-        if metrics.get('cohesion_score', 1.0) < 0.5:
-            needs['poor_communication'] = 1.0 - metrics['cohesion_score']
-        
-        if not needs:
-            return None
-        
-        # Return the most urgent need
-        return max(needs.items(), key=lambda x: x[1])[0]
-    
-    def _determine_negotiation_stance(self, sub_colony_metrics: Dict[str, float],
-                                    colony_metrics: 'ColonyMetrics') -> NegotiationStance:
-        """Determine appropriate negotiation stance"""
-        
-        # High cohesion + good resources = Cooperative
-        if (sub_colony_metrics.get('cohesion_score', 0) > 0.7 and 
-            sub_colony_metrics.get('average_energy', 0) > 0.6):
-            return NegotiationStance.COOPERATIVE
-        
-        # Crisis situation = Assertive
-        if (sub_colony_metrics.get('average_health', 1) < 0.3 or 
-            sub_colony_metrics.get('average_energy', 1) < 0.3):
-            return NegotiationStance.ASSERTIVE
-        
-        # High wisdom = Wisdom-seeking
-        if sub_colony_metrics.get('average_wisdom', 0) > 5.0:
-            return NegotiationStance.WISDOM_SEEKING
-        
-        # Low cooperation = Protective
-        if sub_colony_metrics.get('internal_cooperation', 1) < 0.4:
-            return NegotiationStance.PROTECTIVE
-        
-        # Default to adaptive
-        return NegotiationStance.ADAPTIVE
-    
-    def arbitrate_proposals(self, proposals: List[SubColonyProposal],
-                          colony_metrics: 'ColonyMetrics',
-                          environmental_state: 'EnvironmentalState') -> Optional[SubColonyProposal]:
-        """Arbitrate between competing proposals using harmony metrics"""
-        
-        if not proposals:
-            return None
-        
-        if len(proposals) == 1:
-            return proposals[0]
-        
-        # Calculate harmony scores for each proposal
-        harmony_scores = []
-        
-        for proposal in proposals:
-            harmony_score = self._calculate_proposal_harmony(proposal, colony_metrics)
-            harmony_scores.append((proposal, harmony_score))
-        
-        # Sort by harmony score
-        harmony_scores.sort(key=lambda x: x[1], reverse=True)
-        
-        # Check if top proposal meets harmony threshold
-        best_proposal, best_score = harmony_scores[0]
-        
-        if best_score >= self.harmony_threshold:
-            return best_proposal
-        
-        # If no single proposal meets threshold, attempt synthesis
-        synthesized_proposal = self._attempt_proposal_synthesis(
-            [p for p, s in harmony_scores[:3]], colony_metrics
-        )
-        
-        return synthesized_proposal or best_proposal
-    
-    def _calculate_proposal_harmony(self, proposal: SubColonyProposal,
-                                  colony_metrics: 'ColonyMetrics') -> float:
-        """Calculate harmony score for a proposal"""
-        
-        harmony_components = []
-        
-        # 1. Alignment with overall colony needs
-        colony_alignment = self._assess_colony_alignment(proposal, colony_metrics)
-        harmony_components.append(colony_alignment * 0.4)
-        
-        # 2. Resource efficiency
-        resource_efficiency = self._assess_resource_efficiency(proposal)
-        harmony_components.append(resource_efficiency * 0.2)
-        
-        # 3. Non-interference with other sub-colonies
-        non_interference = self._assess_non_interference(proposal)
-        harmony_components.append(non_interference * 0.2)
-        
-        # 4. Trust score of proposing sub-colony
-        trust_score = self.sub_colony_trust_scores.get(proposal.sub_colony_id, 0.5)
-        harmony_components.append(trust_score * 0.1)
-        
-        # 5. Proposal confidence and urgency balance
-        confidence_urgency_balance = (proposal.confidence + proposal.urgency) / 2
-        harmony_components.append(confidence_urgency_balance * 0.1)
-        
-        return sum(harmony_components)
-    
-    def _attempt_proposal_synthesis(self, top_proposals: List[SubColonyProposal],
-                                  colony_metrics: 'ColonyMetrics') -> Optional[SubColonyProposal]:
-        """Attempt to synthesize multiple proposals into one coherent action"""
-        
-        if len(top_proposals) < 2:
-            return None
-        
-        # Check if proposals are compatible
-        actions = [p.proposed_action for p in top_proposals]
-        
-        # Compatible action groups
-        compatible_groups = [
-            {OvermindActionType.TRIGGER_COLLECTIVE_MEDITATION, OvermindActionType.ENHANCE_WISDOM_PROPAGATION},
-            {OvermindActionType.PROMOTE_COOPERATION, OvermindActionType.IMPROVE_COMMUNICATION},
-            {OvermindActionType.INCREASE_RESOURCE_REGENERATION, OvermindActionType.REDISTRIBUTE_RESOURCES}
-        ]
-        
-        # Find compatible group
-        for group in compatible_groups:
-            if set(actions).issubset(group):
-                # Create synthesized proposal
-                return self._create_synthesized_proposal(top_proposals, group)
-        
-        return None
-    
-    def _create_synthesized_proposal(self, proposals: List[SubColonyProposal],
-                                   action_group: Set['OvermindActionType']) -> SubColonyProposal:
-        """Create a synthesized proposal from compatible proposals"""
-        
-        # Choose primary action (highest urgency)
-        primary_proposal = max(proposals, key=lambda p: p.urgency)
-        
-        # Combine justifications
-        combined_justification = " | ".join([p.justification for p in proposals])
-        
-        # Merge expected benefits
-        combined_benefits = defaultdict(float)
-        for proposal in proposals:
-            for benefit, value in proposal.expected_benefits.items():
-                combined_benefits[benefit] += value
-        
-        # Scale down benefits to avoid over-optimism
-        for benefit in combined_benefits:
-            combined_benefits[benefit] *= 0.8
-        
-        # Combine resource requirements
-        combined_requirements = defaultdict(float)
-        for proposal in proposals:
-            for resource, amount in proposal.resource_requirements.items():
-                combined_requirements[resource]
+        return np.mean(alignment_scores)

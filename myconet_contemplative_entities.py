@@ -1266,16 +1266,6 @@ class ContemplativeNeuroAgent:
                 'wisdom_accumulated': float(self.wisdom_accumulated),
                 'ethical_decision_ratio': float(self.ethical_decisions / max(1, self.decisions_made)),
                 'update_time': float(update_time),
-    def _calculate_performance_metrics(self, update_time: float) -> Dict[str, float]:
-        """Calculate current performance metrics - TYPE VALIDATED"""
-        try:
-            return {
-                'energy_level': float(self.energy),
-                'health_level': float(self.health),
-                'mindfulness_level': float(self.mindfulness_level),
-                'wisdom_accumulated': float(self.wisdom_accumulated),
-                'ethical_decision_ratio': float(self.ethical_decisions / max(1, self.decisions_made)),
-                'update_time': float(update_time),
                 'survival_time': float(self.age),
                 'reputation': float(self.reputation),
                 'relationship_count': float(len(self.relationships))
